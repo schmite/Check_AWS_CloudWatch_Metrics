@@ -215,25 +215,45 @@ available = ''
     return values
   end
 
-  def check_threshold( arg_str, warn_values, crit_values )
+  def check_threshold( arg_str, warn_values, crit_values, reverse )
     arg_num = arg_str.to_f()
-    if ((crit_values[0]).to_f() < (crit_values[1]).to_f()) &&
-      (arg_num < (crit_values[0]).to_f() || arg_num > (crit_values[1]).to_f())
-      return NAGIOS_CODE_CRITICAL
-    elsif ((crit_values[0]).to_f() > (crit_values[1]).to_f()) &&
-      (arg_num < (crit_values[0]).to_f() && arg_num > (crit_values[1]).to_f())
-      return NAGIOS_CODE_CRITICAL
-    end
 
-    if ((warn_values[0]).to_f() < (warn_values[1]).to_f()) && 
-      (arg_num < (warn_values[0]).to_f() || arg_num > (warn_values[1]).to_f())
-      return NAGIOS_CODE_WARNING
-    elsif ((warn_values[0]).to_f() > (warn_values[1]).to_f()) &&
-      (arg_num < (warn_values[0]).to_f() && arg_num > (warn_values[1]).to_f())
-      return NAGIOS_CODE_WARNING
-    end
+    if(reverse)
+      if ((crit_values[0]).to_f() > (crit_values[1]).to_f()) &&
+        (arg_num > (crit_values[0]).to_f() || arg_num > (crit_values[1]).to_f())
+        return NAGIOS_CODE_CRITICAL
+      elsif ((crit_values[0]).to_f() > (crit_values[1]).to_f()) &&
+        (arg_num < (crit_values[0]).to_f() && arg_num > (crit_values[1]).to_f())
+        return NAGIOS_CODE_CRITICAL
+      end
 
-    return NAGIOS_CODE_OK
+      if ((warn_values[0]).to_f() > (warn_values[1]).to_f()) && 
+        (arg_num < (warn_values[0]).to_f() || arg_num > (warn_values[1]).to_f())
+        return NAGIOS_CODE_WARNING
+      elsif ((warn_values[0]).to_f() < (warn_values[1]).to_f()) &&
+        (arg_num < (warn_values[0]).to_f() && arg_num > (warn_values[1]).to_f())
+        return NAGIOS_CODE_WARNING
+      end
+      return NAGIOS_CODE_OK
+
+    else
+      if ((crit_values[0]).to_f() < (crit_values[1]).to_f()) &&
+        (arg_num < (crit_values[0]).to_f() || arg_num > (crit_values[1]).to_f())
+        return NAGIOS_CODE_CRITICAL
+      elsif ((crit_values[0]).to_f() > (crit_values[1]).to_f()) &&
+        (arg_num < (crit_values[0]).to_f() && arg_num > (crit_values[1]).to_f())
+        return NAGIOS_CODE_CRITICAL
+      end
+
+      if ((warn_values[0]).to_f() < (warn_values[1]).to_f()) && 
+        (arg_num < (warn_values[0]).to_f() || arg_num > (warn_values[1]).to_f())
+        return NAGIOS_CODE_WARNING
+      elsif ((warn_values[0]).to_f() > (warn_values[1]).to_f()) &&
+        (arg_num < (warn_values[0]).to_f() && arg_num > (warn_values[1]).to_f())
+        return NAGIOS_CODE_WARNING
+      end
+      return NAGIOS_CODE_OK
+    end
   end
 
 
@@ -569,20 +589,24 @@ elsif !(cloudwatch_metrics_stats.GetMetricStatisticsResult.Datapoints.nil? || cl
     cloudwatch_svc_perfdata += "metric_sample_count=#{sample_count} "
   end
   ret = NAGIOS_CODE_OK
+  
+  # Free space: more is better.
+  reverse = (metric == "FreeStorageSpace" ? true : false)
+
   # check for threshold and ranges
   case stat
     when 'Average'
-      ret = check_threshold( average, warning_values, critical_values )
+      ret = check_threshold( average, warning_values, critical_values, reverse )
     when 'Sum'
-      ret = check_threshold( sum, warning_values, critical_values )
+      ret = check_threshold( sum, warning_values, critical_values, reverse )
     when 'SampleCount'
-      ret = check_threshold( sample_count, warning_values, critical_values )
+      ret = check_threshold( sample_count, warning_values, critical_values, reverse )
     when 'Maximum'
-      ret = check_threshold( maximum, warning_values, critical_values )
+      ret = check_threshold( maximum, warning_values, critical_values, reverse )
     when 'Minimum'
-      ret = check_threshold( minimum, warning_values, critical_values )
+      ret = check_threshold( minimum, warning_values, critical_values, reverse )
     else
-      ret = check_threshold( average, warning_values, critical_values )
+      ret = check_threshold( average, warning_values, critical_values, reverse )
   end
 else
   ret = NAGIOS_CODE_UNKNOWN
